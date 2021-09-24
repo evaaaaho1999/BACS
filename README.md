@@ -1,3 +1,3 @@
 # BACS
 
-The R markdown work for business analytics. 
+These code files are the homework file in Business Analytics Using Computational Statistics course.
