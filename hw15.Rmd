@@ -1,0 +1,188 @@
+---
+title: "BACS HW15"
+author: '106070020'
+date: "2021年6月5日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readxl)
+sdata<-read_excel("C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW14 BACS/security_questions.xlsx","data")
+sdata<-as.data.frame(sdata)
+data_pca<-prcomp(sdata, scale. = T)
+summary(data_pca)
+nrow(sdata)
+```
+
+## Question 1
+
+###(a) Show a single visualization with scree plot of data, scree plot of simulated noise, and a horizontal line showing the eigenvalue = 1 cutoff.
+```{r}
+# Q1(a)
+sim_noise_ev<-function(n, p) {
+  noise<-data.frame(replicate(p,rnorm(n)))
+  return( eigen(cor(noise))$values)
+}
+set.seed(42)
+evalue_noise<-replicate(100, sim_noise_ev(405,18))
+evalues_mean<-apply(evalue_noise,1, mean)
+screeplot(data_pca, type='lines')
+lines(evalues_mean, type='b', col='blue')
+abline(h=1, lty='dotted', col='red')
+```
+
+###(b) How many dimensions would you retain if we used Parallel Analysis?
+***
+> Only 2 dimension will be retained as Only two PCs have higher eignevalues than the"noise" 
+
+
+## Question 2
+
+###(a)Looking at the loadings of the first 3 principal components, to which components does each item seem to best belong?
+```{r warning=F, message=F}
+library(psych)
+library(dplyr)
+s_principal<-principal(sdata, nfactor=10, rotate="none", scores=TRUE)
+lpc1<-as.data.frame(s_principal$loadings[,1])
+lpc1_i<-filter(.data=lpc1, lpc1$`s_principal$loadings[, 1]` >=0.7)
+lpc1_i
+lpc2<-as.data.frame(s_principal$loadings[,2])
+lpc2_i<-filter(.data=lpc2, lpc2$`s_principal$loadings[, 2]` >=0.7)
+lpc2_i
+sort(s_principal$loadings[,2], decreasing = T)
+lpc3<-as.data.frame(s_principal$loadings[,3])
+lpc3_i<-filter(.data=lpc3, lpc3$`s_principal$loadings[, 3]` >=0.7)
+lpc3_i
+sort(s_principal$loadings[,3], decreasing = T)
+```
+
+###(b)How much of the total variance of the security dataset do the first 3 PCs capture?
+```{r}
+principal(sdata, nfactor=10, rotate="none", scores=TRUE)
+```
+
+***
+> The first 3 PCs capture 0.76 of the total variance of the security dataset.
+
+###(c)Looking at commonality and uniqueness, which items are less than adequately explained by the first 3 principal components?
+```{r}
+principal(sdata, nfactor=3, rotate="none", scores=TRUE)
+```
+
+***
+>
++ h2: communities, u2:uniqueness
++ Communalities refers to shared variance with the other items. 
++ uniqueness is variance not explained by the other items.
+
+- Column h2 refers to the component common factor variance, i.e., the degree of variance explained by the principal component for each variable. column u2 refers to component uniqueness, i.e., the proportion of variance that cannot be explained by the principal component.
+- Q2 is less than adequately explained by the first 3 principal components, as it got the lowest h2 and highest u2.
+
+
+###(d)How many measurement items share similar loadings between 2 or more components?
+```{r}
+principal(sdata, nfactor=10, rotate="none", scores=TRUE)
+```
+
+***
+>Except the Q13, measurement items share similar loadings between 2 or more components. 
+
+###(e)Can you distinguish a ‘meaning’ behind the first principal component from the items that load best upon it? (see the wording of the questions of those items)
+
+***
+> The ‘meaning’ behind the first principal component is about security, confidentiality , protection of personal identity and safe transcation. 
+
+## Question 3
+
+### (a)Individually, does each rotated component (RC) explain the same, or different, amount of variance than the corresponding principal components (PCs)?
+```{r}
+r_principal<-principal(sdata,nfactor=3,rotate="varimax",scores=TRUE)
+r_principal
+principal(sdata,nfactor=3,rotate="None",scores=TRUE)
+```
+
+***
+> Each rotated component (RC) explain the different amount of variance than the corresponding principal components (PCs).
+
+### (b)Together, do the three rotated components explain the same, more, or less cumulative variance as the three principal components combined?
+
+***
+> The three rotated components explain the same cumulative variance as the three principal components combined.
+
+### (c)Looking back at the items that shared similar loadings with multiple principal components (#2d), do those items have more clearly differentiated loadings among rotated components?
+
+***
+> Yes, they do have more clearly differentiated loadings among rotated components.
+
+### (d)Can you now interpret the “meaning” of the 3 rotated components from the items that load best upon each of them? (see the wording of the questions of those items)
+```{r}
+sort(r_principal$loadings[,1], decreasing = T)
+sort(r_principal$loadings[,2], decreasing = T)
+sort(r_principal$loadings[,3], decreasing = T)
+```
+
+***
+>
++ PC1: Q7, Q11, Q16, Q9, Q14 : About the safety of personal information. 
++ PC2: Q5, Q10, Q8 : About the safety of transaction information.
++ PC3: Q17, Q12, Q4 : Ensuring the transaction will not be denied.
+
+
+### (e)If we reduced the number of extracted and rotated components to 2, does the meaning of our rotated components change?
+```{r}
+r_principal2<-principal(sdata,nfactor=2,rotate="varimax",scores=TRUE)
+r_principal2
+sort(r_principal2$loadings[,1], decreasing = T)
+sort(r_principal2$loadings[,2], decreasing = T)
+```
+
+***
+>
++ PC1: Q11, Q1, Q18, Q16, Q14, Q9, Q7: About the safety of personal information.
++ PC2: Q17, Q4, Q12 : Ensuring the transaction will not be denied.
+
+### (ungraded) Looking back at all our results and analyses of this dataset (from this week and previous), how many components (1-3) do you believe we should extract and analyze to understand the security dataset? Feel free to suggest different answers for different purposes.
+
+***
+> I think 3 components should be extracted, as they all represent different meanings. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
