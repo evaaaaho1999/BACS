@@ -1,0 +1,179 @@
+---
+title: "BACS HW11"
+author: '106070020'
+date: "2021年5月8日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Question 1
+####(a)(i)
+![Scenario 2](C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/s2.png)
+
+
+####(a)(ii)
+```{r}
+#(a)(ii)
+pts<-read.csv("C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/pts.csv")
+regr <- lm(y ~ x, data=pts)
+summary(regr)
+
+```
+
+####(a)(iii)
+```{r}
+#(a)(iii)
+y_hat <- regr$fitted.values
+# segments(pts$x, pts$y, pts$x, y_hat, col="red", lty="dotted")
+```
+![segments](C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/seg_s2.png)
+
+####(a)(iv)
+```{r}
+#(a)(iv)
+SSE<-sum((pts$y-y_hat)^2)
+SSE
+SSR<-sum((y_hat-mean(pts$y))^2)
+SSR
+SST<-SSE+SSR
+SST
+R_sqrt<-SSR/SST
+R_sqrt
+```
+
+####(b) Comparing scenarios 1 and 2, which do we expect to have a stronger R2 
+![Scenario 1](C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/s1.png)
+![Scenario 2](C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/s2.png)
+
+***
+> For the simple linear regression, the R^2 is the square of the correlation coefficient. By comparing scenarios 1 and 2, we should expect scenarios 1 to have a stronger R2, as scenarios 1 has larger correlation coefficient.  
+
+####(c)Comparing scenarios 3 and 4, which do we expect to have a stronger R2 ?
+![Scenario 3](C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/s3.png)
+![Scenario 4](C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/s4.png)
+
+***
+> For the simple linear regression, the R^2 is the square of the correlation coefficient. By comparing scenarios 3 and 4, we should expect they have similar R2, as scenarios they have similar correlation correlation coefficient, which are both close to 0.  
+
+####(d)Comparing scenarios 1 and 2, which do we expect has bigger/smaller SSE, SSR, and SST?
+
+Scenerios 1 will have smaller SSE, as the data points are close to the regression line. Scenerios 2 will have less SSR. scenarios 1 and 2 will have similar SST.
+
+####(e)Comparing scenarios 3 and 4, which do we expect has bigger/smaller SSE, SSR, and SST?
+
+Scenerios 3 and 4 will have similar SSE, as the data points are close to the regression line. Scenerios 4 will have less SSR. scenarios 4 will have larger SST.
+
+## Problem 2
+####(a)(i)Visualize the data in any way you feel relevant (report only relevant/interesting ones)
+
+```{r warning=F, message=F}
+#Q2(a)(i)
+library(corrplot)
+auto <- read.table("C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/auto-data.txt", header=FALSE, na.strings = "?")
+names(auto) <- c("mpg", "cylinders", "displacement", "horsepower", "weight", 
+                 "acceleration", "model_year", "origin", "car_name")
+
+auto1<-na.omit(auto)
+options(repr.plot.width = 14, repr.plot.height = 8) # => bigger plots for the following
+cor_features <- cor(auto1[,1:8], method='spearman')
+corrplot::corrplot(cor_features, tl.cex=0.6, type='lower', method="ellipse")
+
+```
+
+####(a)(ii)Report a correlation table of all variables, rounding to two decimal places
+
+```{r}
+#(ii)
+round(cor(auto[,1:8], use="pairwise.complete.obs"),2)
+```
+
+####(a)(iii)From the visualizations and correlations, which variables seem to relate to mpg?
+
+***
+>Cylinders, displacement, horsepower and weight has the great negative correlation to the mpg. The other variables have positive correlation to mpg.
+
+####(a)(iv) Which relationships might not be linear?
+
+***
+>The relationship between every parameter and origin may not be linear, as origin is factor rather than data point. 
+
+####(a)(v)Are there any pairs of independent variables that are highly correlated (r > 0.7)
+
+***
+> Yes, cylinders and mpg, displacement and mpg, horsepower and mpg, weight and mpg, cylinders and displacement, horsepower and cylinders, weight and cylinders, displacement and horsepower, weight and displacement and weight and horsepower are highly correlated.(r>0.7)
+
+####(b)(i)Which independent variables have a ‘significant’ relationship with mpg at 1% significance?
+```{r}
+auto$origin<-as.factor(auto$origin)
+summary(lm(mpg ~ cylinders+displacement+horsepower+weight+acceleration+model_year+origin, data = auto))
+
+```
+
+***
+> According to the p-value, displacement, weight, model_year, origin2, and origin3 have significant relationship with mpg at 1% significance.
+
+####(b)(ii)Looking at the coefficients, is it possible to determine which independent variables are the most effective at increasing mpg? If so, which ones, and if not, why not? (hint: units!)
+
+***
+> Origin3 is the most effective at increasing mpg, as it has the largest coefficient when mpg increase one unit. 
+
+####(c)(i) Create fully standardized regression results: are these slopes easier to compare?
+```{r}
+auto_std<-data.frame(scale(auto[,1:7]))
+origin<-auto$origin
+auto_std<-cbind(auto_std, origin)
+summary(lm(mpg ~ cylinders+displacement+horsepower+weight+acceleration+model_year+origin, data = auto_std))
+
+```
+
+***
+> These slopes are easier to compare, while the origins are the factor, which cannot do the standardization. 
+
+####(c)(ii)Regress mpg over each nonsignificant independent variable, individually. Which ones become significant when we regress mpg over them individually?
+
+```{r}
+summary(lm(mpg~cylinders, data = auto_std))
+summary(lm(mpg~horsepower, data = auto_std))
+summary(lm(mpg~acceleration, data = auto_std))
+
+```
+
+***
+> By regressing mpg over them individually, all nonsignificant independent variables become significant.
+
+####(c)(iii)Plot the density of the residuals: are they normally distributed and centered around zero?
+
+```{r}
+regr_a<-summary(lm(mpg ~ cylinders+displacement+horsepower+weight+acceleration+model_year+origin, data = auto_std))
+plot(density(regr_a$residuals), main='Distribution of the residuals of the auto_std linear model', lwd=2)
+shapiro.test(regr_a$residuals)
+```
+
+***
+> The residuals are centered around zero. However, they are not normally distributed. The p-value of Shapiro-Wilk normality test is 0.0001061, which is less than 0.05, so we should reject H0(The residuals follow normal distribution).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
