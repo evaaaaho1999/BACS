@@ -186,3 +186,4 @@ sort(r_principal2$loadings[,2], decreasing = T)
 
 
 
+
