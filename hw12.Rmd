@@ -1,0 +1,248 @@
+---
+title: "BACS HW12"
+author: '106070020'
+date: "2021年5月15日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Question 1
+###(a)Run a new regression on the cars_log dataset, with mpg.log. dependent on all other variables
+
+####(i)Which log-transformed factors have a significant effect on log.mpg. at 10% significance?
+```{r}
+cars <- read.table("C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/auto-data.txt", header=F, na.strings = "?")
+names(cars) <- c("mpg", "cylinders", "displacement", "horsepower", "weight", 
+                 "acceleration", "model_year", "origin", "car_name")
+cars_log <- with(cars, data.frame(log(mpg), log(cylinders), log(displacement), log(horsepower), log(weight), log(acceleration), model_year, origin))
+
+engine_regr <-lm(log.mpg. ~ log.cylinders. + log.displacement.+log.horsepower.+ log.weight.+log.acceleration.
+                 +model_year+factor(origin), data=cars_log, na.action=na.exclude)
+summary(engine_regr)
+```
+
+***
+> Under 10% significance, log.horsepower., log.weight., log.acceleration., model_year, and origin have a significant effect on log.mpg.  
+
+####(ii)Do some new factors now have effects on mpg, and why might this be?
+```{r}
+par(mfrow=c(1,2))
+plot(cars$mpg, cars$horsepower, main='Scatter plot of mpg and horsepower')
+plot(cars$mpg, cars$acceleration, main='Scatter plot of mpg and accerleration')
+```
+
+***
+> log.horsepower. and log.acceleration. are new factors now have effects on mpg. The reason of this situation may be that the relationship between these factors and mpg may be exponential relationship(e.g. the relationship between horsepower and mpg seems to be exponential).
+
+####(iii)Which factors still have insignificant or opposite (from correlation) effects on mpg? Why might this be?
+```{r}
+par(mfrow=c(2,2))
+plot(cars$mpg, cars$cylinders, main='Scatter plot of mpg and cylinders')
+plot(cars$mpg, cars$displacement, main='Scatter plot of mpg and displacement')
+plot(cars_log$log.cylinders.,cars_log$log.mpg., main='Scatter plot of log.mpg. and log.horsepower.')
+plot(cars_log$log.mpg.,cars_log$log.displacement.,main='Scatter plot of log.mpg. and log.displacement.')
+
+```
+
+***
+>log.cylinders. and log.displacement. are still have insignificant effects on log.mpg. According to the plots above, cylinders and displacement seem not having the linear or exponential relationship with mpg. Also, the relationship of log.mpg. with log.cylinders. and log.mpg. with log.displacement are also not linear or exponential. 
+
+###(b)Let’s take a closer look at weight, because it seems to be a major explanation of mpg
+
+####(i)Create a regression (call it regr_wt) of mpg on weight from the original cars dataset
+```{r}
+regr_wt<-lm(mpg~weight, data = cars)
+summary(regr_wt)
+```
+
+####(ii)Create a regression (call it regr_wt_log) of log.mpg. on log.weight. from cars_log
+```{r}
+regr_wt_log<-lm(log.mpg.~log.weight., data=cars_log)
+summary(regr_wt_log)
+```
+
+####(iii)Visualize the residuals of both regression models (raw and log-transformed)
+```{r}
+par(mfrow=c(1,2))
+plot(density(regr_wt$residuals), col='blue', lwd=2, main='density plot of residuals of regr_wt')
+plot(density(regr_wt_log$residuals), col='red', lwd=2, main='density plot of residuals of regr_wt_log')
+par(mfrow=c(1,2))
+{plot(cars$mpg, resid(regr_wt), col='blue', lwd=2, main='scatterplot of weight. vs. residuals')
+abline(h=0)
+}
+{plot(cars_log$log.mpg., resid(regr_wt_log), col='red', lwd=2, main='scatterplot of log.weight. vs. residuals')
+  abline(h=0)
+}
+```
+
+####(iv)How would you interpret the slope of log.weight. vs log.mpg. in simple words?
+```{r}
+#Q1(b)(iv)
+regr_wt_log$coefficients
+
+```
+
+***
+> The slope of log.weight. vs log.mpg. is -1.058268, which means that they have negative relationship. (1 unit increase in log.weight. will cause 1.058268 decrease in log.mpg.)
+
+###(c)Let’s examine the 95% confidence interval of the slope of log.weight. vs. log.mpg.
+
+####(i)Create a bootstrapped confidence interval
+```{r}
+plot(log(cars$weight), log(cars$mpg), col=NA, pch=19)
+# Function for single resampled regression line
+boot_regr<-function(model, dataset) {
+  boot_index<-sample(1:nrow(dataset), replace=TRUE)
+  data_boot<-dataset[boot_index,]
+  regr_boot<-lm(model, data=data_boot)
+  abline(regr_boot,lwd=1, col=rgb(0.7, 0.7, 0.7, 0.5))
+  regr_boot$coefficients
+}
+coeffs<-replicate(300,boot_regr(log(mpg) ~ log(weight), cars))
+
+#Plot points and regression line
+points(log(cars$weight), log(cars$mpg), col="blue",pch=19)
+abline(a=mean(coeffs["(Intercept)",]),b=mean(coeffs["log(weight)",]),lwd=2)
+#Confidence interval values 
+quantile(coeffs["log(weight)",], c(0.025, 0.975))
+#Plot confidence interval of coefficient 
+plot(density(coeffs["log(weight)",]),xlim=c(-1.2, -1), 
+     main='density plot of log weight coefficient CI', lwd=2)
+abline(v=quantile(coeffs["log(weight)",], c(0.025, 0.975)), col='red')
+
+```
+
+####(ii)Verify your results with a confidence interval using traditional statistics
+```{r}
+hp_regr_log<-lm(log(mpg) ~ log(weight), cars)
+confint(hp_regr_log)
+quantile(coeffs["log(weight)",], c(0.025, 0.975))
+```
+
+***
+> The results are very similar.  
+
+##Q2
+###(a)Using regression and R2, compute the VIF of log.weight. using the approach shown in class
+```{r}
+regr_log <- lm(log.mpg. ~ log.cylinders. + log.displacement. + log.horsepower. +
+                 log.weight. + log.acceleration. + model_year +
+                 factor(origin),  data=cars_log)
+
+weight_regr<-lm(weight ~ cylinders + displacement + horsepower + acceleration +model_year+ factor(origin),data=cars,na.action=na.exclude)
+r2_weight <-summary(weight_regr)$r.squared
+vif_weight<-1 / (1-r2_weight)
+sqrt(vif_weight)
+```
+
+###(b)Let’s try a procedure called Stepwise VIF Selection  to remove highly collinear predictors.
+
+####(i)Use vif(regr_log) to compute VIF of the all the independent variables
+```{r warning=F, message=F}
+library(car)
+vif(regr_log)
+```
+
+####(ii)Eliminate from your model the single independent variable with the largest VIF score that is also greater than 5
+
+***
+> Eliminate log.displacement., whose GVIF is larger than 5. 
+
+
+####(iii)Repeat steps (i) and (ii) until no more independent variables have VIF scores above 5
+```{r}
+regr_log2 <- lm(log.mpg. ~ log.cylinders.  + log.horsepower. +
+                 log.weight. + log.acceleration. + model_year +
+                 factor(origin),  data=cars_log)
+
+vif(regr_log2)
+
+regr_log3 <- lm(log.mpg. ~ log.cylinders.  +
+                  log.weight. + log.acceleration. + model_year +
+                  factor(origin),  data=cars_log)
+
+vif(regr_log3)
+
+regr_log4 <- lm(log.mpg. ~ log.weight. + log.acceleration. + model_year +
+                  factor(origin),  data=cars_log)
+
+vif(regr_log4)
+```
+
+####(iv)Report the final regression model and its summary statistics
+```{r}
+#Final regression model
+regr_log4
+#summary
+summary(regr_log4)
+```
+
+###(c)Using stepwise VIF selection, have we lost any variables that were previously significant? If so, how much did we hurt our explanation by dropping those variables? 
+```{r}
+a<-summary(regr_log4)
+b<-summary(regr_log)
+a$r.squared
+b$r.squared
+```
+
+***
+> We lose log.cylinders., log.horsepower., and log.displacement. log.horsepower. used to be the significant variables. However, we just hurt our explanationa little by dropping those variables. The R-square of regr_log(0.89191) is a little bit larger than that of regr_log4(0.8855764). 
+
+###(d)From only the formula for VIF, try deducing/deriving the following:
+
+####(i)If an independent variable has no correlation with other independent variables, what would its VIF score be? 
+
+***
+> The VIF should be 1. 
+
+####(ii)Given a regression with only two independent variables (X1 and X2), how correlated would X1 and X2 have to be, to get VIF scores of 5 or higher? To get VIF scores of 10 or higher?
+
+***
+1.
++ VIF= 1/(1-r2)>5
++ 5*(1-r2)<1
++ (1-r2) < 1/5
++ r2 > 4/5
++ Ans: The R-square of two independent variable should larger than 0.8 to make VIF>5
+
+2.
++ VIF = 1/(1-r2)>10
++ 10*(1-r2)<1
++ (1-r2) < 1/10
++ r2 > 9/10
++ Ans: The R-square of two independent variable should larger than 0.8 to make VIF>5
+
+##Q3
+###(a)Let’s add three separate regression lines on the scatterplot, one for each of the origins:
+```{r}
+origin_colors = c("blue", "darkgreen", "red")
+with(cars_log, plot(log.weight., log.mpg., pch=origin, col=origin_colors[origin]))
+
+cars_us <- subset(cars_log, origin==1)
+wt_regr_us <- lm(log.mpg. ~ log.weight., data=cars_us)
+abline(wt_regr_us, col=origin_colors[1], lwd=2)
+
+cars_eu <- subset(cars_log, origin==2)
+wt_regr_eu <- lm(log.mpg. ~ log.weight., data=cars_eu)
+abline(wt_regr_eu, col=origin_colors[2], lwd=2)
+
+cars_jp <- subset(cars_log, origin==3)
+wt_regr_jp <- lm(log.mpg. ~ log.weight., data=cars_jp)
+abline(wt_regr_jp, col=origin_colors[3], lwd=2)
+
+```
+
+###(b)[not graded] Do cars from different origins appear to have different weight vs. mpg relationships?
+
+***
+> It seems like the weight vs. mpg relationships between US and Europe and Japan appear to be slioghtly different, as the scatter plot shows that the distribution and the slope in the group 2 and group 3 are close, while they are slightly different with group 1. 
+
+
+
+
+
+
