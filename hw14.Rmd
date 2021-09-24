@@ -1,0 +1,229 @@
+---
+title: "BACS HW14"
+author: '106070020'
+date: "2021年5月28日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Question 1
+###(a)Let’s try computing the direct effects first:
+####(i)Model 1: Regress log.weight. over log.cylinders. only and report the coefficient
+```{r}
+#Q1(a)(i)
+cars <- read.table("C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW11 BACS/auto-data.txt", header=F, na.strings = "?")
+names(cars) <- c("mpg", "cylinders", "displacement", "horsepower", "weight", 
+                 "acceleration", "model_year", "origin", "car_name")
+cars_log <- with(cars, data.frame(log(mpg), log(cylinders), log(displacement), log(horsepower), log(weight), log(acceleration), model_year, origin))
+cars_log<-na.omit(cars_log)
+wc<-lm(log.weight.~log.cylinders., data=cars_log)
+summary(wc)
+round(summary(wc)$coefficients,2)
+```
+
+***
+> The P-value<0.05, so the number of cylinders has a significant direct effect on weight.
+
+####(ii)Model 2: Regress log.mpg. over log.weight. and all control variables and report the coefficient
+```{r}
+#(a)(ii)
+mw<-lm(log.mpg.~log.weight.+ log.acceleration.+ model_year+factor(origin), data=cars_log)
+summary(mw)
+round(summary(mw)$coefficients,2)
+
+```
+
+***
+> The P-value<0.05, so the number of weight has a significant direct effect on mpg.
+
+###(b)What is the indirect effect of cylinders on mpg?
+```{r}
+#Q1(b)
+indirect_effect<-round(summary(wc)$coefficients,2)[2,1]*round(summary(mw)$coefficients,2)[2,1]
+indirect_effect
+```
+
+###(c)Let’s bootstrap for the confidence interval of the indirect effect of cylinders on mpg
+```{r}
+#Q1(c)
+boot_mediation<-function(model1,model2,dataset) {
+  boot_index<-sample(1:nrow(dataset), replace=TRUE)
+  data_boot<-dataset[boot_index, ]
+  regr1<-lm(model1,data_boot)
+  regr2<-lm(model2,data_boot)
+  return(regr1$coefficients[2] *regr2$coefficients[2])}
+set.seed(42)
+indirect<-replicate(2000,boot_mediation(wc,mw,cars_log))
+quantile(indirect, probs=c(0.025, 0.975))
+
+plot(density(indirect),lwd=2,col="blue", main='Bootstrapped Test of Indirect Effects between log.cylinders. on log.mpg.')
+abline(v=mean(indirect), lty=2, col="red", lwd=2)
+abline(v=quantile(indirect, probs=c(0.025, 0.975)), lty=2, lwd=2, col="green")
+
+```
+
+
+##Question 2
+
+###(a)Let’s analyze the principal components of the four collinear variables
+####(i)Create a new data.frame of the four log-transformed variables with high multicollinearity
+```{r}
+#Q2(a)(i)
+engine <- with(cars_log, data.frame(log.mpg., log.cylinders., log.displacement., log.horsepower.))
+engine<-na.omit(engine)
+```
+
+####(ii)How much variance of the four variables is explained by their first principal component?
+```{r}
+#Q2(a)(ii)
+var<-eigen(cor(engine))$values
+total_var<-sum(var)
+var[1]/total_var
+a<-prcomp(engine,scale. = T)
+summary(a)
+```
+
+***
+>89.72% of variance of the four variables is explained by their first principal component.
+
+###(iii)Looking at the values and valence (positive/negative) of the first principal component’s eigenvector, what would you call the information captured by this component?
+```{r}
+#Q2(a)(iii)
+load1<-a$rotation[,1]
+dotchart(load1[order(load1, decreasing=FALSE)] ,   
+         main="Loading Plot for PC1",               
+         xlab="Variable Loadings",                  
+         col="red")     
+```
+
+***
+> The loading of log.mpg. in PC1 is positive, which means that it has the positive relationship with PC1. This tell us that PC1 can explain log.mpg very well as 89.72% of variance of the four variables is explained by PC1.  
+
+
+###(b)Let’s revisit our regression analysis on cars_log:
+####(i)Store the scores of the first principal component as a new column of cars_log
+```{r}
+#Q2(b)(i)
+PCs<-as.numeric(prcomp(engine, scale. = F)$x[,1])
+cars_log$engine_PC1<-PCs
+```
+
+####(ii)Regress mpg over the the column with PC1 scores 
+```{r}
+#Q2(b)(ii)
+summary(lm(log.mpg.~engine_PC1+log.acceleration.+model_year+factor(origin),data=cars_log))
+```
+
+
+####(iii)Try running the regression again over the same independent variables, but this time with everything standardized. How important is this new column relative to other columns?
+```{r}
+#Q2(b)(iii)
+cars_log2<-as.data.frame(scale(cars_log[,1:7]))
+PCs2<-as.numeric(prcomp(engine, scale. = T)$x[,1])
+cars_log2$origin<-cars_log$origin
+cars_log2$engine_PC1_std<-PCs2
+summary(lm(log.mpg.~engine_PC1_std+log.acceleration.+model_year+factor(origin),data=cars_log2))
+
+```
+
+***
+> The engine_PC1_std, log.acceleration., model_year are still significant effect on mpg, while the origins are not.  
+
+##Question 3
+###(a)How much variance did each extracted factor explain?
+```{r}
+#Q3(a)
+library(readxl)
+data<-read_excel("C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW14 BACS/security_questions.xlsx","data")
+data<-as.data.frame(data)
+data_pca<-prcomp(data, scale. = T)
+summary(data_pca)
+
+```
+
+###(b)How many dimensions would you retain, according to the criteria we discussed?
+```{r}
+#Q3(b)
+eigen(cor(data))$values
+screeplot(data_pca, type="lines")
+```
+
+***
+>
++ Eigenvalues ≥ 1: retain 3 variables.
++ Screeplot: retain 2 variables.
+
+
+###(c)(ungraded) Can you interpret what any of the principal components mean? 
+```{r warning = F}
+#Q3(c)
+library(factoextra)
+var <- get_pca_var(data_pca)
+library(corrplot)
+corrplot(var$cos2, is.corr=FALSE)
+fviz_cos2(data_pca, choice = "var", axes = 1:2)
+fviz_pca_var(data_pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+             )
+```
+
+***
++ A high cos2 value means that the variable has a large contribution to the principal component, which is represented in the example data by the correlation curve plotted near the edge of the circle.
++ A low cos2 value means that the variable is not well represented by the principal component, which in the case of the correlation curve is approximately near the center of the circle.
++ The cos2 value is to measure the usefulness of a variable. The higher it is, the more important the variable is in the principal component analysis.
++ The variable correlation plot shows the relationship between the variables included in the group and the principal components, with positively correlated variables being close to each other and negatively correlated divisions being south of each other, while the length from the centroid to the variable represents the proportion of the variable in this dimension.
+
+> According to the correlation plot above, Q1, Q3, Q14, Q18 have greater effects on dim1. Q4, Q12, Q17 have greater effects on dim2. In dim-1-2, Q17 has largest cos2, and the following are Q12, Q4, Q1, Q14. And Q4, Q12, Q17 are highly positive correlated.
+
+>
+- (Dim2) Q4, Q12, Q17 are mainly about transaction, including transaction message and confirmation of transaction.
+- (Dim1) Q1, Q3, Q14, Q18 are mainly about the security issues, including the accuracy of message, confidentiality of the transactions. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
