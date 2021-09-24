@@ -1,0 +1,202 @@
+---
+title: "BACS HW9"
+author: '106070020'
+date: "2021年4月24日"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Question 1
+
+#### a. You discover that your colleague wanted to target the general population of Taiwanese users of the product.  However, he only collected data from a pool of young consumers, and missed many older customers who you suspect might use the product much less every day.
+
+***
+
+i.  Would this scenario create systematic or random error (or both or neither)?
+    + This scenario will create the systematic error due to the missing data form the older customer.
+  
+ii.  Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?
+    + This scenario will affect diff and sd.  
+    
+iii.  Will it increase or decrease our power to reject the null hypothesis?
+    + This scenario will decrease our power to reject the null hypothesis. 
+    
+iv.  Which kind of error (Type I or Type II) becomes more likely because of this scenario?
+    + Type 1 error will become more likely because of this scenario.   
+
+
+
+
+#### b. You find that 20 of the respondents are reporting data from the wrong wearable device, so they should be removed from the data. These 20 people are just like the others in every other respect.
+
+***
+
+i.  Would this scenario create systematic or random error (or both or neither)?
+    + This scenario will create the random error due to the wrong wearable device.
+  
+ii.  Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?
+    + This scenario will affect sd, and if the 20 people are removed, the n will also be affected.  
+    
+iii.  Will it increase or decrease our power to reject the null hypothesis?
+    + This scenario will decrease our power to reject the null hypothesis. 
+    
+iv.  Which kind of error (Type I or Type II) becomes more likely because of this scenario?
+    + Type 2 error will become more likely because of this scenario.   
+
+#### c.  very annoying professor visiting your company has criticized your colleague’s “95% confidence” criteria, and has suggested relaxing it to just 90%.
+
+***
+
+i.  Would this scenario create systematic or random error (or both or neither)?
+    + This scenario will neither create the systematic error and random error.
+  
+ii.  Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?
+    + This scenario will affect alpha.  
+    
+iii.  Will it increase or decrease our power to reject the null hypothesis?
+    + This scenario will increase our power to reject the null hypothesis. 
+    
+iv.  Which kind of error (Type I or Type II) becomes more likely because of this scenario?
+    + Type 2 error will become more likely because of this scenario.   
+
+#### d. Your colleague has measured usage times on five weekdays and taken a daily average. But you feel this will underreport usage for younger people who are very active on weekends, whereas it over-reports usage of older users.
+
+***
+
+i.  Would this scenario create systematic or random error (or both or neither)?
+    + This scenario will create the systematic error.
+  
+ii.  Which part of the t-statistic or significance (diff, sd, n, alpha) would be affected?
+    + This scenario will affect diff and sd.  
+    
+iii.  Will it increase or decrease our power to reject the null hypothesis?
+    + This scenario will decrease our power to reject the null hypothesis. 
+    
+iv.  Which kind of error (Type I or Type II) becomes more likely because of this scenario?
+    + Type 1 error will become more likely because of this scenario.  
+
+## Question 2
+```{r message=FALSE}
+library(dplyr)
+```
+
+```{r}
+experiment <- read.csv("C:/Users/user/Desktop/作業 上課資料(清大)/大四下/BACS/HW9 BACS/study2Data.csv", header=TRUE)
+BY_data <- with(experiment, data.frame(Subject, Axis='BY', Emotion_Condition, ACC=BY_ACC, SAD_ESRI))
+RG_data <- with(experiment, data.frame(Subject, Axis='RG', Emotion_Condition, ACC=RG_ACC, SAD_ESRI))
+by_acc<-BY_data$ACC
+rg_acc<-RG_data$ACC
+```
+
+
+####(a) Visualize the differences between blue-yellow accuracy (BY_ACC) and red-green accuracy (RG_ACC) for both the sad and neutral viewers (Emotion_Condition). You are free to choose any visualization method you wish, but only report the most useful visualizations and any first impressions.
+
+```{r}
+#(a)
+by_sad<-filter(.data=BY_data, BY_data$Emotion_Condition == "Sadness")
+by_neu<-filter(.data=BY_data, BY_data$Emotion_Condition == "Neutral")
+
+{plot(density(by_sad$ACC), lwd=2, col='blue', main='The plot of blue-yellow accuracy for different emotion')
+lines(density(by_neu$ACC), lwd=2, col='yellow')
+abline(v=mean(by_neu$ACC), lty=2, lwd=2, col='yellow')
+abline(v=mean(by_sad$ACC), lty=2, lwd=2, col='blue')
+legend('topright', legend=c("acc sad", "acc neutral",'mean acc sad', 'mean acc neutral'),
+       col=c("blue", 'yellow',"blue", 'yellow'), lwd=c(2,2,2,2), lty=c(1,1,2,2), cex=0.75)
+}
+
+rg_sad<-filter(.data=RG_data, RG_data$Emotion_Condition == "Sadness")
+rg_neu<-filter(.data=RG_data, RG_data$Emotion_Condition == "Neutral")
+{plot(density(rg_sad$ACC), lwd=2, col='red', main='The plot of red-green accuracy for different emotion', ylim=c(0,5))
+  lines(density(rg_neu$ACC), lwd=2, col='green')
+  abline(v=mean(rg_neu$ACC), lty=2, lwd=2, col='green')
+  abline(v=mean(rg_sad$ACC), lty=2, lwd=2, col='red')
+  legend('topleft', legend=c("acc sad", "acc neutral",'mean acc sad', 'mean acc neutral'),
+         col=c("red", 'green',"red", 'green'), lwd=c(2,2,2,2), lty=c(1,1,2,2), cex=0.75)
+}
+```
+
+***
+>
++ According to the two plots above, the ACC of the blue-yellow condition seems to be skew to the right, while under the red-green condition, the distribution of ACC does not skew to the right. Instead, the acc neutral of the red-green condition seems a little bit skew to the left. 
+>
++ By observing the two graph above, we can figure out that both in the blue-yellow and red-green conditions, the mean of ACC under sad and neutral emotion are different, while we cannot tell how much different they are, and whether the differences are signficant enough. 
+
+
+
+####(b) Run a t-test (traditional) to check if there is a significant difference in blue-yellow accuracy between sad and neutral participants at 95% confidence.
+
+```{r}
+#(b)
+by_sad<-filter(.data=BY_data, BY_data$Emotion_Condition == "Sadness")
+by_neu<-filter(.data=BY_data, BY_data$Emotion_Condition == "Neutral")
+
+varby<-var.test(by_sad$ACC,by_neu$ACC)
+varby$p.value #If it is larger than 0.05, then it means we cannot reject the by_sad$ACC and by_neu$ACC has same variance.
+t.test(by_sad$ACC, by_neu$ACC, var.equal = T)
+
+```
+
+***
+> According to the t-test, there is a significant difference in blue-yellow accuracy between sad and neutral participants at 95% confidence, as the p-value is smaller than the 0.05.
+
+####(c)Run a t-test (traditional) to check if there is a significant difference in red-green accuracy between sad and neutral participants at 95% confidence.
+
+```{r}
+#(c)
+rg_sad<-filter(.data=RG_data, RG_data$Emotion_Condition == "Sadness")
+rg_neu<-filter(.data=RG_data, RG_data$Emotion_Condition == "Neutral")
+
+varrg<-var.test(rg_sad$ACC,rg_neu$ACC)
+varrg$p.value #If it is larger than 0.05, than it means we cannot reject the rg_sad$ACC and rg_neu$ACC has same variance.
+t.test(rg_sad$ACC, rg_neu$ACC, var.equal = T)
+```
+
+***
+> According to the t-test, there is not a significant difference in red-green accuracy between sad and neutral participants at 95% confidence, as the p-value is larger than the 0.05.
+
+
+
+####(d) (not graded)  Do the above t-tests support a claim that there is an interaction between emotion and color axis?  (i.e., does people’s accuracy of color perception along different color-axes depend on their emotion? Here, accuracy is an outcome variable, while color-axis and emotion are independent factors)
+   
+***
+> According to above t-tests, only under the blue-yellow condition the t-test support a claim that there is an interaction between emotion and color axis. While under the red-green condition, the p-value is not significant enough to show that there is an interaction between emotion and color axis.
+
+
+####(e) Run a factorial design ANOVA where color perception accuracy is determined by emotion (sad vs. neutral), color-axis (RG vs. BY), and the interaction of emotion and color-axis. Are any of these three factors (emotion/color-axis/interaction) possibly influencing color perception accuracy at any meaningful level of confidence?
+
+```{r}
+all_data <- rbind(BY_data, RG_data)
+aov_col<-aov(formula = ACC ~ Axis + Emotion_Condition + Axis:Emotion_Condition, data=all_data)
+summary(aov_col)
+
+with(all_data,
+  interaction.plot
+  (
+    x.factor=Emotion_Condition,
+    trace.factor= Axis,
+    response=ACC,
+    lwd=2, 
+    main= 'Interaction plot'
+  )
+)
+```
+
+***
+> The p-value of the Emotion_Condition is 0.0574, which is very close to the 0.05, so it may influence color perception accuracy significantly when the confidence interval is under 95% (such as 90% confidence interval).
+
+
+
+
+
+
+
+
+
+
+
