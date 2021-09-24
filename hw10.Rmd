@@ -1,0 +1,118 @@
+---
+title: "BACS HW10 10670020"
+author: 'The classmate that help me: 106070004, 106070038'
+date: "2021年4月29日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+```{r}
+#Q1(a)
+library(data.table)
+data <- fread("C:/Users/eva/Desktop/作業 上課資料(清大)/大四下/BACS/HW10 BACS/piccollage_accounts_bundles.csv", header = T)
+dat_mat <- as.data.frame(data[, -1, with=FALSE])
+```
+###(a) Let’s explore to see if any sticker bundles seem intuitively similar
+
+####(i) How many recommendations does each bundle have?
+***
+>Answer: Six recommendations.
+
+####(ii) Use your intuition to recommend five other bundles in our dataset that might have similar usage patterns as this bundle.
+```{r}
+head(dat_mat$sweetmothersday)
+dat_mat[3, 1:20]
+```
+
+***
+> For sweet mother's day, I will recommend Mom2013, toMomwithLove, supersweet, HeartStickerPack and cutoutluv, as they are all about love, and related to the mother's day. 
+
+###(b) Let’s find similar bundles using geometric models of similarity
+
+####(i) Let’s create cosine similarity based recommendations for all bundles:
+```{r message=F}
+#1
+# install.packages("lsa")
+# install.packages("SnowballC")
+library(SnowballC)
+library(lsa)
+data_matrix<-as.matrix(dat_mat)
+cos_similar <- cosine(data_matrix)
+sim_mat <- apply(cos_similar, 1, mean)
+sim_mat_rank <- sim_mat[order(sim_mat, decreasing = TRUE)]
+sim_mat_rank[1:5]
+```
+
+***
+> Answer: The Top 5 recommendation are springrose, eastersurprise, bemine, watercolor and hipsterholiday. 
+
+```{r}
+#2
+top5 <- function (name,data) {
+  target <- data[name,]
+  recom <- target[order(target, decreasing = TRUE)]
+  return (recom[2:6]) 
+}
+
+```
+
+
+```{r}
+#3
+
+top5("sweetmothersday",cos_similar)
+
+```
+
+***
+> The top 5 recommendations are mmlm, julyfourth, tropicalparadise, bestdaddy and justmytype. However, this result is totally different with my prediction. 
+
+####(ii)  Let’s create **correlation** based recommendations.
+```{r}
+#1
+bundle_means <- apply(data_matrix, 2, mean)
+bundle_means_matrix <- t(replicate(nrow(data_matrix), bundle_means))
+ac_bundles_mc_b <- data_matrix - bundle_means_matrix
+row.names(ac_bundles_mc_b) <- row.names(data)
+new_cor_similar <- cosine(ac_bundles_mc_b)
+top5("sweetmothersday", new_cor_similar)
+
+```
+
+***
+> Answeer: The top 5 recommendations are mmlm, julyfourth, bestdaddy, justmytype, gudetama, which is similar with the answer in the last question but the order is different. 
+
+
+####(iii) Let’s create **adjusted-cosine** based recommendations.
+
+```{r}
+#2
+library(data.table)
+
+bundle_means <- apply(data_matrix, 1, mean)
+bundle_means_matrix <- replicate(ncol(data_matrix), bundle_means)
+ac_bundles_mc_b <- data_matrix - bundle_means_matrix
+ad_cor_sim <- cosine(ac_bundles_mc_b)
+top5("sweetmothersday", ad_cor_sim)
+```
+
+***
+> The top 5 recommendations are justmytype, julyfourth, gudetama, mmlm, bestdaddy, the bundles are samw with the last two questions, while the orders are different. 
+
+### (c) (not graded) Are the three sets of geometric recommendations similar in nature (theme/keywords) to the recommendations you picked earlier using your intuition alone? What reasons might explain why your computational geometric recommendation models produce different results from your intuition?
+***
+> Answer: No, they are not similar at all. I think it is because I recommend the top 5 bundles by realizing their names' meanings.
+
+### (d) (not graded) What do you think is the conceptual difference in cosine similarity, correlation, and adjusted-cosine?
+
+  + Cosine similarity : Calculate the Cosine angle between the two vectors. The larger the angle, the more unlike the two vectors are; the smaller the angle, the more similar the two vectors are.
+  + correlation coefficient: It is widely used to measure the degree of linear dependence between two variables X and Y, with values between -1 and 1.
+  + adjusted-cosine: It is used to do the calculation for the content similarity, but in order to consider the problem of scale difference, so each will deduct an average of the score given by the user for each rating.
+
+
+
+
